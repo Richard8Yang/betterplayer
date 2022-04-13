@@ -3,7 +3,11 @@
 // found in the LICENSE file.
 
 #import "BetterPlayer.h"
+#if __has_include(<better_player/better_player-Swift.h>)
 #import <better_player/better_player-Swift.h>
+#else
+#import "better_player-Swift.h"
+#endif
 
 static void* timeRangeContext = &timeRangeContext;
 static void* statusContext = &statusContext;
