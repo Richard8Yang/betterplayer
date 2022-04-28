@@ -99,9 +99,10 @@ class BetterPlayerPlugin : FlutterPlugin, ActivityAware, MethodCallHandler {
         when (call.method) {
             INIT_METHOD -> disposeAllPlayers()
             CREATE_METHOD -> {
-                val handle = flutterState!!.textureRegistry!!.createSurfaceTexture()
+                val videoTex = flutterState!!.textureRegistry!!.createSurfaceTexture()
+                val intermediateTex = flutterState!!.textureRegistry!!.createSurfaceTexture()
                 val eventChannel = EventChannel(
-                    flutterState!!.binaryMessenger, EVENTS_CHANNEL + handle.id()
+                    flutterState!!.binaryMessenger, EVENTS_CHANNEL + videoTex.id()
                 )
                 var customDefaultLoadControl: CustomDefaultLoadControl? = null
                 if (call.hasArgument(MIN_BUFFER_MS) && call.hasArgument(MAX_BUFFER_MS) &&
@@ -116,10 +117,11 @@ class BetterPlayerPlugin : FlutterPlugin, ActivityAware, MethodCallHandler {
                     )
                 }
                 val player = BetterPlayer(
-                    flutterState!!.applicationContext, eventChannel, handle,
+                    flutterState!!.applicationContext, eventChannel,
+                    videoTex, intermediateTex,
                     customDefaultLoadControl, result
                 )
-                videoPlayers.put(handle.id(), player)
+                videoPlayers.put(videoTex.id(), player)
             }
             PRE_CACHE_METHOD -> preCache(call, result)
             STOP_PRE_CACHE_METHOD -> stopPreCache(call, result)

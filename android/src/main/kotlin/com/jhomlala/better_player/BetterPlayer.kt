@@ -60,6 +60,7 @@ import com.google.android.exoplayer2.ext.mediasession.MediaSessionConnector
 import com.google.android.exoplayer2.trackselection.DefaultTrackSelector.SelectionOverride
 import com.google.android.exoplayer2.upstream.DataSource
 import com.google.android.exoplayer2.util.Util
+import com.google.android.exoplayer2.video.VideoSize
 import java.io.File
 import java.lang.Exception
 import java.lang.IllegalStateException
@@ -71,6 +72,7 @@ internal class BetterPlayer(
     context: Context,
     private val eventChannel: EventChannel,
     private val textureEntry: SurfaceTextureEntry,
+    private val intermediateTexEntry: SurfaceTextureEntry,
     customDefaultLoadControl: CustomDefaultLoadControl?,
     result: MethodChannel.Result
 ) {
@@ -94,6 +96,8 @@ internal class BetterPlayer(
         customDefaultLoadControl ?: CustomDefaultLoadControl()
     private var lastSendBufferedPosition = 0L
 
+    private var renderer : CustomRender? = null
+
     init {
         val loadBuilder = DefaultLoadControl.Builder()
         loadBuilder.setBufferDurationsMs(
@@ -109,7 +113,7 @@ internal class BetterPlayer(
             .build()
         workManager = WorkManager.getInstance(context)
         workerObserverMap = HashMap()
-        setupVideoPlayer(eventChannel, textureEntry, result)
+        setupVideoPlayer(eventChannel, textureEntry, intermediateTexEntry, result)
     }
 
     fun setDataSource(
@@ -497,7 +501,8 @@ internal class BetterPlayer(
     }
 
     private fun setupVideoPlayer(
-        eventChannel: EventChannel, textureEntry: SurfaceTextureEntry, result: MethodChannel.Result
+        eventChannel: EventChannel, textureEntry: SurfaceTextureEntry, 
+        intermediateTexEntry: SurfaceTextureEntry, result: MethodChannel.Result
     ) {
         eventChannel.setStreamHandler(
             object : EventChannel.StreamHandler {
@@ -509,7 +514,7 @@ internal class BetterPlayer(
                     eventSink.setDelegate(null)
                 }
             })
-        surface = Surface(textureEntry.surfaceTexture())
+        surface = Surface(intermediateTexEntry.surfaceTexture())
         exoPlayer!!.setVideoSurface(surface)
         setAudioAttributes(exoPlayer, true)
         exoPlayer.addListener(object : Player.Listener {
@@ -540,6 +545,24 @@ internal class BetterPlayer(
                         //no-op
                     }
                 }
+            }
+
+            override fun onVideoSizeChanged(videoSize: VideoSize) {
+                // Video frame size changed
+                Log.d("INFO ", "Video size changed: %d x %d".format(videoSize.width, videoSize.height))
+                textureEntry.surfaceTexture().setDefaultBufferSize(videoSize.width, videoSize.height)
+                // Create opengl renderer with textureEntry
+                if (renderer != null) {
+                    renderer?.dispose()
+                }
+                var options : Map<String, Any> = mapOf(
+                    "antialias" to false,
+                    "alpha" to false,
+                    "width" to videoSize.width,
+                    "height" to videoSize.height,
+                    "dpr" to 1.0
+                )
+                renderer = CustomRender(options, textureEntry.surfaceTexture(), textureEntry.id().toInt())
             }
 
             override fun onPlayerError(error: PlaybackException) {
