@@ -1,7 +1,7 @@
 package com.jhomlala.better_player
 
 import android.opengl.GLES30
-
+import android.util.Log
 
 //#version 300 es must be at first line
 private val GLSL_VERTEX_SHADER = """#version 300 es
@@ -34,17 +34,18 @@ void main (void) {
 }
 """
 
-
 private val OES_GLSL_VERTEX_SHADER = """#version 300 es
 precision mediump float;
 
+uniform mat4 matrix;
 layout (location = 0) in vec4 Position;
 layout (location = 1) in vec2 TextureCoords;
 out vec2 TextureCoordsVarying;
 
 void main () {
     gl_Position = Position;
-    TextureCoordsVarying = TextureCoords;
+    vec4 texCoords = matrix * vec4(TextureCoords.xy, 0, 1);
+    TextureCoordsVarying = texCoords.xy;
 }
 """
 
@@ -62,7 +63,6 @@ void main (void) {
   fragColor = mask;
 }
 """
-
 
 private val FXAA_VERTEX_SHADER = """#version 300 es
 layout (location = 0) in vec4 Position;
@@ -162,6 +162,9 @@ class OpenGLProgram {
 
 
     fun compileShaders(vertex_shader: String, fragment_shader: String): Int {
+        Log.d("Vertex shader", vertex_shader)
+        Log.d("Frament shader", fragment_shader)
+
         val vertexShader = this.compileShader(vertex_shader, GLES30.GL_VERTEX_SHADER)
         val fragmentShader = this.compileShader(fragment_shader, GLES30.GL_FRAGMENT_SHADER)
 

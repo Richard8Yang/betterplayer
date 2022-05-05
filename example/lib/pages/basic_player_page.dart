@@ -18,7 +18,7 @@ class _BasicPlayerPageState extends State<BasicPlayerPage> {
       body: Column(
         children: [
           const SizedBox(height: 8),
-          Padding(
+          /*Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16),
             child: Text(
               "Basic player created with the simplest factory method. Shows video from URL.",
@@ -30,7 +30,7 @@ class _BasicPlayerPageState extends State<BasicPlayerPage> {
             child: BetterPlayer.network(
               Constants.forBiggerBlazesUrl,
             ),
-          ),
+          ),*/
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16),
             child: Text(

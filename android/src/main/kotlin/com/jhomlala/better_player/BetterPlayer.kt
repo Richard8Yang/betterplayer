@@ -42,6 +42,7 @@ import android.support.v4.media.session.PlaybackStateCompat
 import android.support.v4.media.MediaMetadataCompat
 import android.util.Log
 import android.view.Surface
+import android.graphics.SurfaceTexture
 import androidx.lifecycle.Observer
 import com.google.android.exoplayer2.source.smoothstreaming.SsMediaSource
 import com.google.android.exoplayer2.source.smoothstreaming.DefaultSsChunkSource
@@ -68,11 +69,10 @@ import java.util.*
 import kotlin.math.max
 import kotlin.math.min
 
-internal class BetterPlayer(
+internal class BetterPlayer (
     context: Context,
     private val eventChannel: EventChannel,
     private val textureEntry: SurfaceTextureEntry,
-    private val intermediateTexEntry: SurfaceTextureEntry,
     customDefaultLoadControl: CustomDefaultLoadControl?,
     result: MethodChannel.Result
 ) {
@@ -96,7 +96,8 @@ internal class BetterPlayer(
         customDefaultLoadControl ?: CustomDefaultLoadControl()
     private var lastSendBufferedPosition = 0L
 
-    private var renderer : CustomRender? = null
+    private var renderer: CustomRender? = null
+    private var sourceTexture: SurfaceTexture? = null
 
     init {
         val loadBuilder = DefaultLoadControl.Builder()
@@ -113,7 +114,7 @@ internal class BetterPlayer(
             .build()
         workManager = WorkManager.getInstance(context)
         workerObserverMap = HashMap()
-        setupVideoPlayer(eventChannel, textureEntry, intermediateTexEntry, result)
+        setupVideoPlayer(eventChannel, textureEntry, result)
     }
 
     fun setDataSource(
@@ -501,20 +502,31 @@ internal class BetterPlayer(
     }
 
     private fun setupVideoPlayer(
-        eventChannel: EventChannel, textureEntry: SurfaceTextureEntry, 
-        intermediateTexEntry: SurfaceTextureEntry, result: MethodChannel.Result
+        eventChannel: EventChannel, textureEntry: SurfaceTextureEntry, result: MethodChannel.Result
     ) {
         eventChannel.setStreamHandler(
             object : EventChannel.StreamHandler {
                 override fun onListen(o: Any?, sink: EventSink) {
                     eventSink.setDelegate(sink)
                 }
-
                 override fun onCancel(o: Any?) {
                     eventSink.setDelegate(null)
                 }
             })
-        surface = Surface(intermediateTexEntry.surfaceTexture())
+        // Create opengl renderer with textureEntry
+        if (renderer != null) {
+            renderer?.dispose()
+        }
+        var options : Map<String, Any> = mapOf(
+            "antialias" to false,
+            "alpha" to false,
+            "width" to 0,
+            "height" to 0,
+            "dpr" to 1.0
+        )
+        renderer = CustomRender(options, textureEntry)
+        surface = Surface(renderer?.srcSurfaceTex)
+        //surface = Surface(textureEntry.surfaceTexture())
         exoPlayer!!.setVideoSurface(surface)
         setAudioAttributes(exoPlayer, true)
         exoPlayer.addListener(object : Player.Listener {
@@ -549,20 +561,9 @@ internal class BetterPlayer(
 
             override fun onVideoSizeChanged(videoSize: VideoSize) {
                 // Video frame size changed
-                Log.d("INFO ", "Video size changed: %d x %d".format(videoSize.width, videoSize.height))
+                Log.d("INFO ", "Video size changed to: %d x %d".format(videoSize.width, videoSize.height))
                 textureEntry.surfaceTexture().setDefaultBufferSize(videoSize.width, videoSize.height)
-                // Create opengl renderer with textureEntry
-                if (renderer != null) {
-                    renderer?.dispose()
-                }
-                var options : Map<String, Any> = mapOf(
-                    "antialias" to false,
-                    "alpha" to false,
-                    "width" to videoSize.width,
-                    "height" to videoSize.height,
-                    "dpr" to 1.0
-                )
-                renderer = CustomRender(options, textureEntry.surfaceTexture(), textureEntry.id().toInt())
+                //renderer?.updateTexture(-1)
             }
 
             override fun onPlayerError(error: PlaybackException) {
@@ -826,6 +827,7 @@ internal class BetterPlayer(
             surface!!.release()
         }
         exoPlayer?.release()
+        renderer?.dispose()
     }
 
     override fun equals(other: Any?): Boolean {

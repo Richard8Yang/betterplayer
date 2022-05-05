@@ -1,6 +1,5 @@
 package com.jhomlala.better_player
 
-
 import android.content.Context
 import android.graphics.SurfaceTexture
 import android.opengl.GLES32.*
@@ -8,13 +7,14 @@ import android.os.Handler
 import android.os.HandlerThread
 //import com.futouapp.threeegl.ThreeEgl
 import java.util.concurrent.Semaphore
+import io.flutter.view.TextureRegistry.SurfaceTextureEntry
+import android.util.Log
 
-
-class CustomRender {
+class CustomRender : SurfaceTexture.OnFrameAvailableListener{
 
     var disposed = false;
 
-    private lateinit var worker: RenderWorker
+    lateinit var worker: RenderWorker
     var options: Map<String, Any>;
     var width: Int;
     var height: Int;
@@ -22,8 +22,8 @@ class CustomRender {
     var glWidth: Int = 1;
     var glHeight: Int = 1;
 
-    var surfaceTexture: SurfaceTexture;
-    var textureId: Int;
+    var dstSurfaceTexture: SurfaceTexture;
+    var dstTextureId: Int;
     var screenScale: Double = 1.0;
     //var context: Context;
 
@@ -33,17 +33,21 @@ class CustomRender {
 
     var maxTextureSize = 4096;
 
-    var renderThread: HandlerThread = HandlerThread("flutterGlCustomRender");
-    private var renderHandler : Handler
+    var renderThread: HandlerThread = HandlerThread("VideoCustomRender");
+    var renderHandler : Handler
 
-    constructor(options: Map<String, Any>, surfaceTexture: SurfaceTexture, textureId: Int) {
+    lateinit var srcSurfaceTex: SurfaceTexture
+    var oesTextureMatrix: FloatArray = FloatArray(4 * 4)
+
+    constructor(options: Map<String, Any>, destTexture: SurfaceTextureEntry) {
         this.options = options;
         this.width = options["width"] as Int;
         this.height = options["height"] as Int;
         screenScale = options["dpr"] as Double;
 
-        this.surfaceTexture = surfaceTexture;
-        this.textureId = textureId;
+        this.dstSurfaceTexture = destTexture.surfaceTexture();
+        this.dstTextureId = destTexture.id().toInt();
+        //this.srcTextureId = sourceTexture.id().toInt();
         //this.context = FlutterGlPlugin.context;
 
         renderThread.start()
@@ -52,9 +56,7 @@ class CustomRender {
         this.executeSync {
             setup();
         }
-
     }
-
 
     fun setup() {
         glWidth = (width * screenScale).toInt()
@@ -65,6 +67,25 @@ class CustomRender {
         this.worker = RenderWorker();
         this.worker.setup();
 
+        srcSurfaceTex = SurfaceTexture(this.worker!!.srcTextureId)
+        srcSurfaceTex.setOnFrameAvailableListener(this, renderHandler)
+    }
+
+    override fun onFrameAvailable(videoTexture: SurfaceTexture): Unit {
+        eglEnv.makeCurrent();
+        glActiveTexture(GL_TEXTURE1)
+        videoTexture.updateTexImage()
+        videoTexture.getTransformMatrix(oesTextureMatrix)
+
+        // Important: set viewport first
+        glViewport(0, 0, 1280, 720)
+        this.worker.renderTexture(this.worker!!.srcTextureId, oesTextureMatrix);
+
+        glFinish();
+
+        checkGlError("update texture 01");
+        eglEnv.swapBuffers();
+        //Log.d("Thread %d".format(Thread.currentThread().getId()), "onFrameAvailable")
     }
 
     fun updateTexture(sourceTexture: Int): Boolean {
@@ -73,22 +94,22 @@ class CustomRender {
             glEnable(GL_BLEND);
             glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
-            glBindFramebuffer(GL_FRAMEBUFFER, 0);
-
-            glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
-            glClear(GL_COLOR_BUFFER_BIT or GL_DEPTH_BUFFER_BIT or GL_STENCIL_BUFFER_BIT);
-
             this.worker.renderTexture(sourceTexture, null);
+
+            //Log.d("Thread %d".format(Thread.currentThread().getId()), "Frame render")
 
             glFinish();
 
             checkGlError("update texture 01");
             eglEnv.swapBuffers();
         }
-
+/*
+        renderHandler.postDelayed({
+            this.updateTexture(sourceTexture)
+        }, 20)
+*/
         return true;
     }
-
 
     fun initEGL() {
         //shareEglEnv = EglEnv();
@@ -97,22 +118,20 @@ class CustomRender {
         //ThreeEgl.setContext("shareContext", shareEglEnv.eglContext);
 
         eglEnv = EglEnv();
-        dartEglEnv = EglEnv();
+        //dartEglEnv = EglEnv();
 
         //eglEnv.setupRender(shareEglEnv.eglContext);
         //dartEglEnv.setupRender(shareEglEnv.eglContext);
         eglEnv.setupRender();
-        dartEglEnv.setupRender();
+        //dartEglEnv.setupRender();
 
         // TODO DEBUG
-        surfaceTexture.setDefaultBufferSize(glWidth, glHeight)
-        eglEnv.buildWindowSurface(surfaceTexture);
+        //dstSurfaceTexture.setDefaultBufferSize(glWidth, glHeight)
+        eglEnv.buildWindowSurface(dstSurfaceTexture);
 
         //dartEglEnv.buildOffScreenSurface(glWidth, glHeight);
-
         eglEnv.makeCurrent();
     }
-
 
     fun executeSync(task: () -> Unit) {
         val semaphore = Semaphore(0)

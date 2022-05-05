@@ -100,7 +100,6 @@ class BetterPlayerPlugin : FlutterPlugin, ActivityAware, MethodCallHandler {
             INIT_METHOD -> disposeAllPlayers()
             CREATE_METHOD -> {
                 val videoTex = flutterState!!.textureRegistry!!.createSurfaceTexture()
-                val intermediateTex = flutterState!!.textureRegistry!!.createSurfaceTexture()
                 val eventChannel = EventChannel(
                     flutterState!!.binaryMessenger, EVENTS_CHANNEL + videoTex.id()
                 )
@@ -118,8 +117,7 @@ class BetterPlayerPlugin : FlutterPlugin, ActivityAware, MethodCallHandler {
                 }
                 val player = BetterPlayer(
                     flutterState!!.applicationContext, eventChannel,
-                    videoTex, intermediateTex,
-                    customDefaultLoadControl, result
+                    videoTex, customDefaultLoadControl, result
                 )
                 videoPlayers.put(videoTex.id(), player)
             }
