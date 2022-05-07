@@ -92,25 +92,6 @@ class CustomRender : SurfaceTexture.OnFrameAvailableListener{
         eglEnv.swapBuffers();
     }
 
-    /*
-    fun updateTexture(sourceTexture: Int): Boolean {
-        this.execute {
-            // Enable alpha channel
-            glEnable(GL_BLEND);
-            glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-
-            this.worker.renderTexture(sourceTexture, null);
-
-            glFinish();
-
-            checkGlError("update texture 01");
-            eglEnv.swapBuffers();
-        }
-
-        return true;
-    }
-    */
-
     fun initEGL() {
         eglEnv = EglEnv();
         eglEnv.setupRender(this.sharedEglCtx);

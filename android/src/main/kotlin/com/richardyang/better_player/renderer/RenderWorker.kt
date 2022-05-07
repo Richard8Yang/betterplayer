@@ -122,9 +122,11 @@ class RenderWorker {
         glBindTexture(GL_TEXTURE_2D, 0);
     }
 
-    fun renderTexture(matrix: FloatArray?) {
+    fun renderTexture(matrix: FloatArray?, drawOnScreen: Boolean = false) {
         drawOffScreenTexture(vertexBuffer4FBO, textureBuffer4FBO, matrix);
-        drawOnScreenTexture(vertexBuffer4FBO, textureBuffer4FBO);
+        if (drawOnScreen) {
+            drawOnScreenTexture(vertexBuffer4FBO, textureBuffer4FBO);
+        }
     }
 
     fun drawOffScreenTexture(vertexBuffer: FloatBuffer, textureBuffer: FloatBuffer, matrix: FloatArray?) {
