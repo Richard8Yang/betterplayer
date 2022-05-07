@@ -1,7 +1,7 @@
 // Copyright 2017 The Chromium Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
-package com.jhomlala.better_player
+package com.richardyang.better_player
 
 import android.app.Activity
 import android.app.PictureInPictureParams
@@ -12,7 +12,7 @@ import android.os.Handler
 import android.os.Looper
 import android.util.Log
 import android.util.LongSparseArray
-import com.jhomlala.better_player.BetterPlayerCache.releaseCache
+import com.richardyang.better_player.BetterPlayerCache.releaseCache
 import io.flutter.embedding.engine.plugins.FlutterPlugin
 import io.flutter.embedding.engine.plugins.activity.ActivityAware
 import io.flutter.plugin.common.MethodChannel.MethodCallHandler
@@ -26,6 +26,7 @@ import io.flutter.plugin.common.BinaryMessenger
 import io.flutter.view.TextureRegistry
 import java.lang.Exception
 import java.util.HashMap
+import android.opengl.*
 
 /**
  * Android platform implementation of the VideoPlayerPlugin.
@@ -115,9 +116,13 @@ class BetterPlayerPlugin : FlutterPlugin, ActivityAware, MethodCallHandler {
                         call.argument(BUFFER_FOR_PLAYBACK_AFTER_REBUFFER_MS)
                     )
                 }
+                var eglSharedCtx = EGL14.EGL_NO_CONTEXT
+                if (call.hasArgument(SHARED_EGLCONTEXT)) {
+                    eglSharedCtx = call.argument(SHARED_EGLCONTEXT)
+                }
                 val player = BetterPlayer(
                     flutterState!!.applicationContext, eventChannel,
-                    videoTex, customDefaultLoadControl, result
+                    videoTex, customDefaultLoadControl, result, eglSharedCtx
                 )
                 videoPlayers.put(videoTex.id(), player)
             }
@@ -545,5 +550,6 @@ class BetterPlayerPlugin : FlutterPlugin, ActivityAware, MethodCallHandler {
         private const val DISPOSE_METHOD = "dispose"
         private const val PRE_CACHE_METHOD = "preCache"
         private const val STOP_PRE_CACHE_METHOD = "stopPreCache"
+        private const val SHARED_EGLCONTEXT = "sharedEglContext"
     }
 }

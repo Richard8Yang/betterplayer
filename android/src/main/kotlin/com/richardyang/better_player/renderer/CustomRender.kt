@@ -1,11 +1,11 @@
-package com.jhomlala.better_player
+package com.richardyang.better_player
 
 import android.content.Context
 import android.graphics.SurfaceTexture
 import android.opengl.GLES32.*
+import android.opengl.*
 import android.os.Handler
 import android.os.HandlerThread
-//import com.futouapp.threeegl.ThreeEgl
 import java.util.concurrent.Semaphore
 import io.flutter.view.TextureRegistry.SurfaceTextureEntry
 import android.util.Log
@@ -25,11 +25,8 @@ class CustomRender : SurfaceTexture.OnFrameAvailableListener{
     var dstSurfaceTexture: SurfaceTexture;
     var dstTextureId: Int;
     var screenScale: Double = 1.0;
-    //var context: Context;
 
     lateinit var eglEnv: EglEnv;
-    lateinit var dartEglEnv: EglEnv;
-    lateinit var shareEglEnv: EglEnv;
 
     var maxTextureSize = 4096;
 
@@ -38,17 +35,21 @@ class CustomRender : SurfaceTexture.OnFrameAvailableListener{
 
     lateinit var srcSurfaceTex: SurfaceTexture
     var oesTextureMatrix: FloatArray = FloatArray(4 * 4)
+    var sharedEglCtx: EGLContext = EGL14.EGL_NO_CONTEXT
 
-    constructor(options: Map<String, Any>, destTexture: SurfaceTextureEntry) {
+    constructor(options: Map<String, Any>, 
+        destTexture: SurfaceTextureEntry, 
+        shareContext: EGLContext = EGL14.EGL_NO_CONTEXT) {
+
         this.options = options;
-        this.width = options["width"] as Int;
-        this.height = options["height"] as Int;
-        screenScale = options["dpr"] as Double;
+        this.width = 1280;//options["width"] as Int;
+        this.height = 720;//options["height"] as Int;
+        this.screenScale = 1.0;//options["dpr"] as Double;
 
         this.dstSurfaceTexture = destTexture.surfaceTexture();
         this.dstTextureId = destTexture.id().toInt();
-        //this.srcTextureId = sourceTexture.id().toInt();
-        //this.context = FlutterGlPlugin.context;
+
+        this.sharedEglCtx = shareContext
 
         renderThread.start()
         renderHandler = Handler(renderThread.looper)
@@ -71,23 +72,27 @@ class CustomRender : SurfaceTexture.OnFrameAvailableListener{
         srcSurfaceTex.setOnFrameAvailableListener(this, renderHandler)
     }
 
+    fun updateTextureSize(w: Int, h: Int) {
+        this.executeSync {
+            this.worker.updateTextureSize(w, h)
+        }
+    }
+
     override fun onFrameAvailable(videoTexture: SurfaceTexture): Unit {
         eglEnv.makeCurrent();
         glActiveTexture(GL_TEXTURE1)
         videoTexture.updateTexImage()
         videoTexture.getTransformMatrix(oesTextureMatrix)
 
-        // Important: set viewport first
-        glViewport(0, 0, 1280, 720)
-        this.worker.renderTexture(this.worker!!.srcTextureId, oesTextureMatrix);
+        this.worker.renderTexture(oesTextureMatrix);
 
         glFinish();
 
         checkGlError("update texture 01");
         eglEnv.swapBuffers();
-        //Log.d("Thread %d".format(Thread.currentThread().getId()), "onFrameAvailable")
     }
 
+    /*
     fun updateTexture(sourceTexture: Int): Boolean {
         this.execute {
             // Enable alpha channel
@@ -96,40 +101,20 @@ class CustomRender : SurfaceTexture.OnFrameAvailableListener{
 
             this.worker.renderTexture(sourceTexture, null);
 
-            //Log.d("Thread %d".format(Thread.currentThread().getId()), "Frame render")
-
             glFinish();
 
             checkGlError("update texture 01");
             eglEnv.swapBuffers();
         }
-/*
-        renderHandler.postDelayed({
-            this.updateTexture(sourceTexture)
-        }, 20)
-*/
+
         return true;
     }
+    */
 
     fun initEGL() {
-        //shareEglEnv = EglEnv();
-        //shareEglEnv.setupRender();
-
-        //ThreeEgl.setContext("shareContext", shareEglEnv.eglContext);
-
         eglEnv = EglEnv();
-        //dartEglEnv = EglEnv();
-
-        //eglEnv.setupRender(shareEglEnv.eglContext);
-        //dartEglEnv.setupRender(shareEglEnv.eglContext);
-        eglEnv.setupRender();
-        //dartEglEnv.setupRender();
-
-        // TODO DEBUG
-        //dstSurfaceTexture.setDefaultBufferSize(glWidth, glHeight)
+        eglEnv.setupRender(this.sharedEglCtx);
         eglEnv.buildWindowSurface(dstSurfaceTexture);
-
-        //dartEglEnv.buildOffScreenSurface(glWidth, glHeight);
         eglEnv.makeCurrent();
     }
 
@@ -151,20 +136,15 @@ class CustomRender : SurfaceTexture.OnFrameAvailableListener{
     fun getEgl() : List<Long> {
         var _res = mutableListOf<Long>();
         _res.addAll(this.eglEnv.getEgl());
-        _res.addAll(this.dartEglEnv.getEgl());
         return _res;
     }
 
     fun dispose() {
         disposed = true;
-        this.shareEglEnv.dispose();
         this.eglEnv.dispose();
-        this.dartEglEnv.dispose();
         this.worker.dispose();
     }
 
-
-    //检查每一步操作是否有错误的方法
     fun checkGlError(op: String) {
         val error: Int = glGetError();
         if (error != GL_NO_ERROR) {

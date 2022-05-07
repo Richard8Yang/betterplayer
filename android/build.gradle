@@ -1,4 +1,4 @@
-group 'com.jhomlala.better_player'
+group 'com.richardyang.better_player'
 version '0.0.77'
 
 buildscript {

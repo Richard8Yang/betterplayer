@@ -1,4 +1,4 @@
-package com.jhomlala.better_player
+package com.richardyang.better_player
 
 
 import android.graphics.SurfaceTexture
@@ -69,7 +69,6 @@ class EglEnv {
     }
 
     fun setUpEnv(attributesList: IntArray, shareContext: EGLContext = EGL14.EGL_NO_CONTEXT) {
-        // 构建一个显示设备
         eglDisplay = EGL14.eglGetDisplay(EGL14.EGL_DEFAULT_DISPLAY)
         if (eglDisplay == EGL14.EGL_NO_DISPLAY) {
             checkEglError("can't load EGL display")
@@ -99,7 +98,6 @@ class EglEnv {
     }
 
     fun buildOffScreenSurface(width: Int, height: Int) {
-
         val pbufferAttributes = intArrayOf(
                 EGL14.EGL_WIDTH, width,
                 EGL14.EGL_HEIGHT, height,
@@ -112,7 +110,6 @@ class EglEnv {
     }
 
     fun buildWindowSurface(surfaceTexture: SurfaceTexture) {
-
         if (eglSurface != EGL14.EGL_NO_SURFACE) {
             throw RuntimeException("EGL already config surface")
         }

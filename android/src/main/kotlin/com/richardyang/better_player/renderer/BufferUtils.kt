@@ -1,4 +1,4 @@
-package com.jhomlala.better_player
+package com.richardyang.better_player
 
 import java.nio.*
 

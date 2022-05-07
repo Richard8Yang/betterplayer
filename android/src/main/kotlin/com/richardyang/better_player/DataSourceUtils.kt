@@ -1,8 +1,8 @@
-package com.jhomlala.better_player
+package com.richardyang.better_player
 
 import android.net.Uri
 import com.google.android.exoplayer2.upstream.DataSource
-import com.jhomlala.better_player.DataSourceUtils
+import com.richardyang.better_player.DataSourceUtils
 import com.google.android.exoplayer2.upstream.DefaultHttpDataSource
 
 internal object DataSourceUtils {

@@ -1,4 +1,4 @@
-package com.jhomlala.better_player
+package com.richardyang.better_player
 
 import android.content.Context
 import android.graphics.Bitmap
@@ -9,9 +9,9 @@ import androidx.work.Data
 import androidx.work.WorkerParameters
 import androidx.work.ListenableWorker
 import androidx.work.Worker
-import com.jhomlala.better_player.BetterPlayerPlugin
-import com.jhomlala.better_player.DataSourceUtils
-import com.jhomlala.better_player.ImageWorker
+import com.richardyang.better_player.BetterPlayerPlugin
+import com.richardyang.better_player.DataSourceUtils
+import com.richardyang.better_player.ImageWorker
 import java.io.FileOutputStream
 import java.io.InputStream
 import java.lang.Exception

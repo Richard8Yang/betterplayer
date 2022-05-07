@@ -1,4 +1,4 @@
-package com.jhomlala.better_player
+package com.richardyang.better_player
 
 import android.opengl.GLES30
 import android.util.Log

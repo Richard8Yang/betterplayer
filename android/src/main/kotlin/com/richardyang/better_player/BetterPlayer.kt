@@ -1,4 +1,4 @@
-package com.jhomlala.better_player
+package com.richardyang.better_player
 
 import android.annotation.SuppressLint
 import android.app.NotificationChannel
@@ -13,9 +13,9 @@ import android.net.Uri
 import android.os.Build
 import android.os.Handler
 import android.os.Looper
-import com.jhomlala.better_player.DataSourceUtils.getUserAgent
-import com.jhomlala.better_player.DataSourceUtils.isHTTP
-import com.jhomlala.better_player.DataSourceUtils.getDataSourceFactory
+import com.richardyang.better_player.DataSourceUtils.getUserAgent
+import com.richardyang.better_player.DataSourceUtils.isHTTP
+import com.richardyang.better_player.DataSourceUtils.getDataSourceFactory
 import io.flutter.plugin.common.EventChannel
 import io.flutter.view.TextureRegistry.SurfaceTextureEntry
 import io.flutter.plugin.common.MethodChannel
@@ -68,13 +68,15 @@ import java.lang.IllegalStateException
 import java.util.*
 import kotlin.math.max
 import kotlin.math.min
+import android.opengl.*
 
 internal class BetterPlayer (
     context: Context,
     private val eventChannel: EventChannel,
     private val textureEntry: SurfaceTextureEntry,
     customDefaultLoadControl: CustomDefaultLoadControl?,
-    result: MethodChannel.Result
+    result: MethodChannel.Result,
+    private val eglContext: EGLContext = EGL14.EGL_NO_CONTEXT
 ) {
     private val exoPlayer: SimpleExoPlayer?
     private val eventSink = QueuingEventSink()
@@ -114,7 +116,7 @@ internal class BetterPlayer (
             .build()
         workManager = WorkManager.getInstance(context)
         workerObserverMap = HashMap()
-        setupVideoPlayer(eventChannel, textureEntry, result)
+        setupVideoPlayer(eventChannel, textureEntry, result, eglContext)
     }
 
     fun setDataSource(
@@ -502,7 +504,10 @@ internal class BetterPlayer (
     }
 
     private fun setupVideoPlayer(
-        eventChannel: EventChannel, textureEntry: SurfaceTextureEntry, result: MethodChannel.Result
+        eventChannel: EventChannel, 
+        textureEntry: SurfaceTextureEntry, 
+        result: MethodChannel.Result, 
+        eglContext: EGLContext = EGL14.EGL_NO_CONTEXT
     ) {
         eventChannel.setStreamHandler(
             object : EventChannel.StreamHandler {
@@ -520,13 +525,9 @@ internal class BetterPlayer (
         var options : Map<String, Any> = mapOf(
             "antialias" to false,
             "alpha" to false,
-            "width" to 0,
-            "height" to 0,
-            "dpr" to 1.0
         )
-        renderer = CustomRender(options, textureEntry)
+        renderer = CustomRender(options, textureEntry, eglContext)
         surface = Surface(renderer?.srcSurfaceTex)
-        //surface = Surface(textureEntry.surfaceTexture())
         exoPlayer!!.setVideoSurface(surface)
         setAudioAttributes(exoPlayer, true)
         exoPlayer.addListener(object : Player.Listener {
@@ -563,7 +564,7 @@ internal class BetterPlayer (
                 // Video frame size changed
                 Log.d("INFO ", "Video size changed to: %d x %d".format(videoSize.width, videoSize.height))
                 textureEntry.surfaceTexture().setDefaultBufferSize(videoSize.width, videoSize.height)
-                //renderer?.updateTexture(-1)
+                renderer?.updateTextureSize(videoSize.width, videoSize.height)
             }
 
             override fun onPlayerError(error: PlaybackException) {
