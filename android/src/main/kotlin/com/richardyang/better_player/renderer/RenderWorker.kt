@@ -18,12 +18,13 @@ class RenderWorker {
     var srcTextureId: Int = -1;
     var dstTextureId: Int = -1;
     var fboId: Int = -1;
+    var rboId: Int = -1;
 
     var offScreenProgram: Int = -1;
     var onScreenProgram: Int = -1;
 
-    var glWidth: Int = 1280;
-    var glHeight: Int = 720;
+    var glWidth: Int = 640;
+    var glHeight: Int = 480;
 
     constructor() {
         this.openGLProgram = OpenGLProgram();
@@ -77,7 +78,7 @@ class RenderWorker {
         // create a renderbuffer object to store depth info
         var rboArr: IntArray = IntArray(1);
         glGenRenderbuffers(1, rboArr, 0);
-        var rboId = rboArr[0];
+        rboId = rboArr[0];
         glBindRenderbuffer(GL_RENDERBUFFER, rboId);
         glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT16, w, h);
         glBindRenderbuffer(GL_RENDERBUFFER, 0);
@@ -117,6 +118,9 @@ class RenderWorker {
         glHeight = height;
         val w = upperPowerOfTwo(glWidth);
         val h = upperPowerOfTwo(glHeight);
+        glBindRenderbuffer(GL_RENDERBUFFER, rboId);
+        glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT16, w, h);
+        glBindRenderbuffer(GL_RENDERBUFFER, 0);
         glBindTexture(GL_TEXTURE_2D, dstTextureId);
         glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, w, h, 0, GL_RGBA, GL_UNSIGNED_BYTE, null);
         glBindTexture(GL_TEXTURE_2D, 0);

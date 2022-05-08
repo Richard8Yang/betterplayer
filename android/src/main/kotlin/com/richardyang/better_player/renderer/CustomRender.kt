@@ -79,17 +79,24 @@ class CustomRender : SurfaceTexture.OnFrameAvailableListener{
     }
 
     override fun onFrameAvailable(videoTexture: SurfaceTexture): Unit {
-        eglEnv.makeCurrent();
+        glEnable(GL_BLEND);
+        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+        
         glActiveTexture(GL_TEXTURE1)
         videoTexture.updateTexImage()
         videoTexture.getTransformMatrix(oesTextureMatrix)
 
         this.worker.renderTexture(oesTextureMatrix);
+        //this.worker.renderTexture(oesTextureMatrix, true);
 
         glFinish();
 
         checkGlError("update texture 01");
         eglEnv.swapBuffers();
+
+        // TODO: callback to flutter notifying texture updated
+        // flutter side can do texture copy immediately to its local context
+        // then use the local texture copy for further rendering
     }
 
     fun initEGL() {

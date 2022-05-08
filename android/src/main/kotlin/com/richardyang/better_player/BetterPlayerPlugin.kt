@@ -517,6 +517,7 @@ class BetterPlayerPlugin : FlutterPlugin, ActivityAware, MethodCallHandler {
         private const val DRM_HEADERS_PARAMETER = "drmHeaders"
         private const val DRM_CLEARKEY_PARAMETER = "clearKey"
         private const val MIX_WITH_OTHERS_PARAMETER = "mixWithOthers"
+        private const val SHARED_EGLCONTEXT = "sharedEglContext"
         const val URL_PARAMETER = "url"
         const val PRE_CACHE_SIZE_PARAMETER = "preCacheSize"
         const val MAX_CACHE_SIZE_PARAMETER = "maxCacheSize"
@@ -550,6 +551,5 @@ class BetterPlayerPlugin : FlutterPlugin, ActivityAware, MethodCallHandler {
         private const val DISPOSE_METHOD = "dispose"
         private const val PRE_CACHE_METHOD = "preCache"
         private const val STOP_PRE_CACHE_METHOD = "stopPreCache"
-        private const val SHARED_EGLCONTEXT = "sharedEglContext"
     }
 }
