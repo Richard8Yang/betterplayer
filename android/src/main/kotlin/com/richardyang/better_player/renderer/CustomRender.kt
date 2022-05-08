@@ -15,16 +15,9 @@ class CustomRender : SurfaceTexture.OnFrameAvailableListener{
     var disposed = false;
 
     lateinit var worker: RenderWorker
-    var options: Map<String, Any>;
-    var width: Int;
-    var height: Int;
-
-    var glWidth: Int = 1;
-    var glHeight: Int = 1;
 
     var dstSurfaceTexture: SurfaceTexture;
     var dstTextureId: Int;
-    var screenScale: Double = 1.0;
 
     lateinit var eglEnv: EglEnv;
 
@@ -41,11 +34,6 @@ class CustomRender : SurfaceTexture.OnFrameAvailableListener{
         destTexture: SurfaceTextureEntry, 
         shareContext: EGLContext = EGL14.EGL_NO_CONTEXT) {
 
-        this.options = options;
-        this.width = 1280;//options["width"] as Int;
-        this.height = 720;//options["height"] as Int;
-        this.screenScale = 1.0;//options["dpr"] as Double;
-
         this.dstSurfaceTexture = destTexture.surfaceTexture();
         this.dstTextureId = destTexture.id().toInt();
 
@@ -60,9 +48,6 @@ class CustomRender : SurfaceTexture.OnFrameAvailableListener{
     }
 
     fun setup() {
-        glWidth = (width * screenScale).toInt()
-        glHeight = (height * screenScale).toInt()
-
         this.initEGL();
 
         this.worker = RenderWorker();
