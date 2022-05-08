@@ -282,8 +282,6 @@ bool _remoteCommandsInitialized = false;
 
 
 - (void)handleMethodCall:(FlutterMethodCall*)call result:(FlutterResult)result {
-
-
     if ([@"init" isEqualToString:call.method]) {
         // Allow audio playback when the Ring/Silent switch is set to silent
         for (NSNumber* textureId in _players) {
@@ -293,7 +291,9 @@ bool _remoteCommandsInitialized = false;
         [_players removeAllObjects];
         result(nil);
     } else if ([@"create" isEqualToString:call.method]) {
-        BetterPlayer* player = [[BetterPlayer alloc] initWithFrame:CGRectZero];
+        NSDictionary* argsMap = call.arguments;
+        EAGLContext* eglSharedCtx = argsMap[@"sharedEglContext"];
+        BetterPlayer* player = [[BetterPlayer alloc] initWithFrame:CGRectZero shareEglCtx:eglSharedCtx];
         [self onPlayerSetup:player result:result];
     } else {
         NSDictionary* argsMap = call.arguments;

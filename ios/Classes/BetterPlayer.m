@@ -24,7 +24,7 @@ AVPictureInPictureController *_pipController;
 #endif
 
 @implementation BetterPlayer
-- (instancetype)initWithFrame:(CGRect)frame {
+- (instancetype)initWithFrame:(CGRect)frame, (EAGLContext*)shareEglCtx {
     self = [super init];
     NSAssert(self, @"super init cannot be nil");
     _isInitialized = false;
@@ -37,6 +37,8 @@ AVPictureInPictureController *_pipController;
         _player.automaticallyWaitsToMinimizeStalling = false;
     }
     self._observersAdded = false;
+    // set shared context to renderer
+    _renderer = [[CustomRender alloc] init:shareEglCtx];
     return self;
 }
 
@@ -126,7 +128,6 @@ AVPictureInPictureController *_pipController;
     }
 }
 
-
 static inline CGFloat radiansToDegrees(CGFloat radians) {
     // Input range [-pi, pi] or [-180, 180]
     CGFloat degrees = GLKMathRadiansToDegrees((float)radians);
@@ -134,7 +135,7 @@ static inline CGFloat radiansToDegrees(CGFloat radians) {
         // Convert -90 to 270 and -180 to 180
         return degrees + 360;
     }
-    // Output degrees in between [0, 360[
+    // Output degrees in between [0, 360]
     return degrees;
 };
 
@@ -303,8 +304,7 @@ static inline CGFloat radiansToDegrees(CGFloat radians) {
     }
 }
 
-- (NSTimeInterval) availableDuration
-{
+- (NSTimeInterval) availableDuration {
     NSArray *loadedTimeRanges = [[_player currentItem] loadedTimeRanges];
     if (loadedTimeRanges.count > 0){
         CMTimeRange timeRange = [[loadedTimeRanges objectAtIndex:0] CMTimeRangeValue];
@@ -315,7 +315,6 @@ static inline CGFloat radiansToDegrees(CGFloat radians) {
     } else {
         return 0;
     }
-
 }
 
 - (void)observeValueForKeyPath:(NSString*)path
@@ -576,7 +575,6 @@ static inline CGFloat radiansToDegrees(CGFloat radians) {
     }
 }
 
-
 - (void)setTrackParameters:(int) width: (int) height: (int)bitrate {
     _player.currentItem.preferredPeakBitRate = bitrate;
     if (@available(iOS 11.0, *)) {
@@ -588,8 +586,7 @@ static inline CGFloat radiansToDegrees(CGFloat radians) {
     }
 }
 
-- (void)setPictureInPicture:(BOOL)pictureInPicture
-{
+- (void)setPictureInPicture:(BOOL)pictureInPicture {
     self._pictureInPicture = pictureInPicture;
     if (@available(iOS 9.0, *)) {
         if (_pipController && self._pictureInPicture && ![_pipController isPictureInPictureActive]) {
@@ -606,8 +603,7 @@ static inline CGFloat radiansToDegrees(CGFloat radians) {
 }
 
 #if TARGET_OS_IOS
-- (void)setRestoreUserInterfaceForPIPStopCompletionHandler:(BOOL)restore
-{
+- (void)setRestoreUserInterfaceForPIPStopCompletionHandler:(BOOL)restore {
     if (_restoreUserInterfaceForPIPStopCompletionHandler != NULL) {
         _restoreUserInterfaceForPIPStopCompletionHandler(restore);
         _restoreUserInterfaceForPIPStopCompletionHandler = NULL;
@@ -632,8 +628,7 @@ static inline CGFloat radiansToDegrees(CGFloat radians) {
     [self usePlayerLayer:frame];
 }
 
-- (void)usePlayerLayer: (CGRect) frame
-{
+- (void)usePlayerLayer: (CGRect) frame {
     if( _player )
     {
         // Create new controller passing reference to the AVPlayerLayer
@@ -655,8 +650,7 @@ static inline CGFloat radiansToDegrees(CGFloat radians) {
     }
 }
 
-- (void)disablePictureInPicture
-{
+- (void)disablePictureInPicture {
     [self setPictureInPicture:true];
     if (__playerLayer){
         [self._playerLayer removeFromSuperlayer];
@@ -723,8 +717,6 @@ static inline CGFloat radiansToDegrees(CGFloat radians) {
     [[AVAudioSession sharedInstance] setCategory:AVAudioSessionCategoryPlayback error:nil];
   }
 }
-
-
 #endif
 
 - (FlutterError* _Nullable)onCancelWithArguments:(id _Nullable)arguments {
@@ -763,6 +755,7 @@ static inline CGFloat radiansToDegrees(CGFloat radians) {
     [self disablePictureInPicture];
     [self setPictureInPicture:false];
     _disposed = true;
+    [_renderer dispose];
 }
 
 @end
