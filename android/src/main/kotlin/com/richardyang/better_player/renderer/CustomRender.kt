@@ -30,10 +30,7 @@ class CustomRender : SurfaceTexture.OnFrameAvailableListener{
     var oesTextureMatrix: FloatArray = FloatArray(4 * 4)
     var sharedEglCtx: EGLContext = EGL14.EGL_NO_CONTEXT
 
-    constructor(options: Map<String, Any>, 
-        destTexture: SurfaceTextureEntry, 
-        shareContext: EGLContext = EGL14.EGL_NO_CONTEXT) {
-
+    constructor(destTexture: SurfaceTextureEntry, shareContext: EGLContext = EGL14.EGL_NO_CONTEXT) {
         this.dstSurfaceTexture = destTexture.surfaceTexture();
         this.dstTextureId = destTexture.id().toInt();
 

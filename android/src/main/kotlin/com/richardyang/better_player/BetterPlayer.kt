@@ -522,11 +522,7 @@ internal class BetterPlayer (
         if (renderer != null) {
             renderer?.dispose()
         }
-        var options : Map<String, Any> = mapOf(
-            "antialias" to false,
-            "alpha" to false,
-        )
-        renderer = CustomRender(options, textureEntry, eglContext)
+        renderer = CustomRender(textureEntry, eglContext)
         surface = Surface(renderer?.srcSurfaceTex)
         exoPlayer!!.setVideoSurface(surface)
         setAudioAttributes(exoPlayer, true)
