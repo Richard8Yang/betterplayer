@@ -24,7 +24,7 @@ AVPictureInPictureController *_pipController;
 #endif
 
 @implementation BetterPlayer
-- (instancetype)initWithFrame:(CGRect)frame, (EAGLContext*)shareEglCtx {
+- (instancetype)initWithFrame:(CGRect)frame shareEglCtx:(EAGLContext*)shareEglCtx {
     self = [super init];
     NSAssert(self, @"super init cannot be nil");
     _isInitialized = false;
@@ -38,14 +38,9 @@ AVPictureInPictureController *_pipController;
     }
     self._observersAdded = false;
     // set shared context to renderer
-    _renderer = [[CustomRender alloc] init:shareEglCtx];
+    _renderer = [[CustomRender alloc] init];
+    [_renderer initialize:shareEglCtx];
     return self;
-}
-
-- (nonnull UIView *)view {
-    BetterPlayerView *playerView = [[BetterPlayerView alloc] initWithFrame:CGRectZero];
-    playerView.player = _player;
-    return playerView;
 }
 
 - (void)addObservers:(AVPlayerItem*)item {
@@ -113,6 +108,15 @@ AVPictureInPictureController *_pipController;
         [[NSNotificationCenter defaultCenter] removeObserver:self];
         self._observersAdded = false;
     }
+}
+
+- (CVPixelBufferRef)copyPixelBuffer {
+  CMTime outputItemTime = [_videoOutput itemTimeForHostTime:CACurrentMediaTime()];
+  if ([_videoOutput hasNewPixelBufferForItemTime:outputItemTime]) {
+    return [_videoOutput copyPixelBufferForItemTime:outputItemTime itemTimeForDisplay:NULL];
+  } else {
+    return NULL;
+  }
 }
 
 - (void)itemDidPlayToEndTime:(NSNotification*)notification {
@@ -274,6 +278,12 @@ static inline CGFloat radiansToDegrees(CGFloat radians) {
 
     [asset loadValuesAsynchronouslyForKeys:@[ @"tracks" ] completionHandler:assetCompletionHandler];
     [self addObservers:item];
+
+    NSDictionary *pixBuffAttributes = @{
+        (id)kCVPixelBufferPixelFormatTypeKey : @(kCVPixelFormatType_32BGRA),
+        (id)kCVPixelBufferIOSurfacePropertiesKey : @{}
+    };
+    _videoOutput = [[AVPlayerItemVideoOutput alloc] initWithPixelBufferAttributes:pixBuffAttributes];
 }
 
 -(void)handleStalled {
@@ -395,6 +405,7 @@ static inline CGFloat radiansToDegrees(CGFloat radians) {
             case AVPlayerItemStatusUnknown:
                 break;
             case AVPlayerItemStatusReadyToPlay:
+                [item addOutput:_videoOutput];
                 [self onReadyToPlay];
                 break;
         }
@@ -450,7 +461,6 @@ static inline CGFloat radiansToDegrees(CGFloat radians) {
         CGFloat width = size.width;
         CGFloat height = size.height;
 
-
         AVAsset *asset = _player.currentItem.asset;
         bool onlyAudio =  [[asset tracksWithMediaType:AVMediaTypeVideo] count] == 0;
 
@@ -469,6 +479,10 @@ static inline CGFloat radiansToDegrees(CGFloat radians) {
         CGSize naturalSize = track.assetTrack.naturalSize;
         CGAffineTransform prefTrans = track.assetTrack.preferredTransform;
         CGSize realSize = CGSizeApplyAffineTransform(naturalSize, prefTrans);
+
+        CGFloat w = fabs(realSize.width) ? : width;
+        CGFloat h = fabs(realSize.height) ? : height;
+        [_renderer updateTextureSize: w height: h];
 
         int64_t duration = [BetterPlayerTimeUtils FLTCMTimeToMillis:(_player.currentItem.asset.duration)];
         if (_overriddenDuration > 0 && duration > _overriddenDuration){

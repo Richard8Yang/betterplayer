@@ -57,15 +57,6 @@ bool _remoteCommandsInitialized = false;
     [_players removeAllObjects];
 }
 
-#pragma mark - FlutterPlatformViewFactory protocol
-- (NSObject<FlutterPlatformView>*)createWithFrame:(CGRect)frame
-                                   viewIdentifier:(int64_t)viewId
-                                        arguments:(id _Nullable)args {
-    NSNumber* textureId = [args objectForKey:@"textureId"];
-    BetterPlayerView* player = [_players objectForKey:@(textureId.intValue)];
-    return player;
-}
-
 - (NSObject<FlutterMessageCodec>*)createArgsCodec {
     return [FlutterStandardMessageCodec sharedInstance];
 }
@@ -163,8 +154,6 @@ bool _remoteCommandsInitialized = false;
         return MPRemoteCommandHandlerStatusSuccess;
     }];
 
-
-
     if (@available(iOS 9.1, *)) {
         [commandCenter.changePlaybackPositionCommand addTargetWithHandler:^MPRemoteCommandHandlerStatus(MPRemoteCommandEvent * _Nonnull event) {
             if (_notificationPlayer != [NSNull null]){
@@ -231,8 +220,6 @@ bool _remoteCommandsInitialized = false;
     }
 }
 
-
-
 - (NSString*) getTextureId: (BetterPlayer*) player{
     NSArray* temp = [_players allKeysForObject: player];
     NSString* key = [temp lastObject];
@@ -279,7 +266,6 @@ bool _remoteCommandsInitialized = false;
     [_timeObserverIdDict removeAllObjects];
 
 }
-
 
 - (void)handleMethodCall:(FlutterMethodCall*)call result:(FlutterResult)result {
     if ([@"init" isEqualToString:call.method]) {

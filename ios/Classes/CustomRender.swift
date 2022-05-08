@@ -3,10 +3,11 @@ import OpenGLES.ES3
 import GLKit
 
 @objc public class CustomRender: NSObject, FlutterTexture {
-  var fboTargetPixelBuffer: CVPixelBuffer?;
-  var fboTextureCache: CVOpenGLESTextureCache?;
+  var fboTargetPixelBuffer: CVPixelBuffer? = nil;
+  var fboTextureCache: CVOpenGLESTextureCache? = nil;
   var fboTexture: CVOpenGLESTexture? = nil;
   var fboId: GLuint = 0;
+  var rboId: GLuint = 0;
 
   var glWidth: Double = 640;
   var glHeight: Double = 480;
@@ -19,16 +20,12 @@ import GLKit
 
   var disposed: Bool = false;
 
-  init(shareContext: EAGLContext?) {
+  @objc public func initialize(_ shareContext: EAGLContext?) {
     self.shareEglCtx = shareContext;
-    
-    super.init();
-
     //self.eAGLShareContext = EAGLContext.init(api: EAGLRenderingAPI.openGLES3);
-    
     self.setup();
   }
-  
+
   func setup() {
     initEGL();
     self.worker = RenderWorker();
@@ -40,8 +37,27 @@ import GLKit
     _egls[2] = self.eglEnv!.getContext();
     return _egls;
   }
+
+  @objc public func getTextureId() -> GLuint {
+    return CVOpenGLESTextureGetName(fboTexture!);
+  }
+
+  @objc public func updateTextureSize(_ width: Double, height: Double) {
+    glWidth = width;
+    glHeight = height;
+    glBindRenderbuffer(GLenum(GL_RENDERBUFFER), rboId);
+    glRenderbufferStorage(GLenum(GL_RENDERBUFFER), GLenum(GL_DEPTH24_STENCIL8), GLsizei(glWidth), GLsizei(glHeight));
+    //glBindRenderbuffer(GLenum(GL_RENDERBUFFER), 0);
+    self.createCVBufferWithSize(
+      size: CGSize(width: glWidth, height: glHeight),
+      context: self.eglEnv!.context!
+    );
+    glBindTexture(CVOpenGLESTextureGetTarget(fboTexture!), CVOpenGLESTextureGetName(fboTexture!));
+    //glTexImage2D(GLenum(GL_TEXTURE_2D), 0, GL_RGBA8, glWidth, glHeight, 0, GL_RGBA, GL_UNSIGNED_BYTE, null);
+    //glBindTexture(GLenum(GL_TEXTURE_2D), 0);
+  }
   
-  func updateTexture(sourceTexture: Int64) -> Bool {
+  @objc public func updateTexture(_ sourceTexture: Int64) -> Bool {
     glEnable(GLenum(GL_BLEND));
     glBlendFunc(GLenum(GL_SRC_ALPHA), GLenum(GL_ONE_MINUS_SRC_ALPHA));
  
@@ -80,15 +96,13 @@ import GLKit
     self.eglEnv!.setupRender(shareContext: shareEglCtx);
     self.eglEnv!.makeCurrent();
 
-    initOffscreenFBO(context: self.eglEnv!.context!);
+    initOffscreenFBO();
   }
 
-  func initOffscreenFBO(context: EAGLContext) {
-    print("FlutterGL initGL  glWidth \(glWidth) glHeight: \(glHeight)  screenScale: \(screenScale)  ");
-
+  func initOffscreenFBO() {
     self.createCVBufferWithSize(
       size: CGSize(width: glWidth, height: glHeight),
-      context: context
+      context: self.eglEnv!.context!
     );
     
     checkGlError(op: "EglEnv initGL 11...")
@@ -98,7 +112,7 @@ import GLKit
     }
     
     glBindTexture(CVOpenGLESTextureGetTarget(fboTexture!), CVOpenGLESTextureGetName(fboTexture!));
-      
+
     checkGlError(op: "EglEnv initGL 2...")
 
     glEnable(GLenum(GL_BLEND));
@@ -110,19 +124,16 @@ import GLKit
     
     checkGlError(op: "EglEnv initGL 1...")
 
-    var colorRenderBuffer: GLuint = GLuint();
-    
-    glGenRenderbuffers(1, &colorRenderBuffer);
-    glBindRenderbuffer(GLenum(GL_RENDERBUFFER), colorRenderBuffer);
+    glGenRenderbuffers(1, &rboId);
+    glBindRenderbuffer(GLenum(GL_RENDERBUFFER), rboId);
     
     glRenderbufferStorage(GLenum(GL_RENDERBUFFER), GLenum(GL_DEPTH24_STENCIL8), GLsizei(glWidth), GLsizei(glHeight));
     
     glGenFramebuffers(1, &fboId);
     glBindFramebuffer(GLenum(GL_FRAMEBUFFER), fboId);
     glFramebufferTexture2D(GLenum(GL_FRAMEBUFFER), GLenum(GL_COLOR_ATTACHMENT0), GLenum(GL_TEXTURE_2D), CVOpenGLESTextureGetName(fboTexture!), 0);
-    glFramebufferRenderbuffer(GLenum(GL_FRAMEBUFFER), GLenum(GL_DEPTH_ATTACHMENT), GLenum(GL_RENDERBUFFER), colorRenderBuffer);
-    
-    glFramebufferRenderbuffer(GLenum(GL_FRAMEBUFFER), GLenum(GL_STENCIL_ATTACHMENT), GLenum(GL_RENDERBUFFER), colorRenderBuffer);
+    glFramebufferRenderbuffer(GLenum(GL_FRAMEBUFFER), GLenum(GL_DEPTH_ATTACHMENT), GLenum(GL_RENDERBUFFER), rboId);
+    glFramebufferRenderbuffer(GLenum(GL_FRAMEBUFFER), GLenum(GL_STENCIL_ATTACHMENT), GLenum(GL_RENDERBUFFER), rboId);
     
     if(glCheckFramebufferStatus(GLenum(GL_FRAMEBUFFER)) != GL_FRAMEBUFFER_COMPLETE) {
       print("failed to make complete framebuffer object \(glCheckFramebufferStatus(GLenum(GL_FRAMEBUFFER)))");
@@ -132,7 +143,7 @@ import GLKit
   }
   
   func createCVBufferWithSize(size: CGSize, context: EAGLContext) {
-    let err: CVReturn = CVOpenGLESTextureCacheCreate(kCFAllocatorDefault, nil, context, nil, &textureCache);
+    let err: CVReturn = CVOpenGLESTextureCacheCreate(kCFAllocatorDefault, nil, context, nil, &fboTextureCache);
       
     let attrs = [
       kCVPixelBufferPixelFormatTypeKey: NSNumber(value: kCVPixelFormatType_32BGRA),
@@ -166,7 +177,7 @@ import GLKit
     }
   }
 
-  func dispose() {
+  @objc public func dispose() {
     self.disposed = true;
 
     //self.eAGLShareContext = nil;
