@@ -19,20 +19,18 @@ NSMutableDictionary* _dataSourceDict;
 NSMutableDictionary*  _timeObserverIdDict;
 NSMutableDictionary*  _artworkImageDict;
 CacheManager* _cacheManager;
-int texturesCount = -1;
 BetterPlayer* _notificationPlayer;
 bool _remoteCommandsInitialized = false;
 
 
 #pragma mark - FlutterPlugin protocol
 + (void)registerWithRegistrar:(NSObject<FlutterPluginRegistrar>*)registrar {
-    FlutterMethodChannel* channel =
-    [FlutterMethodChannel methodChannelWithName:@"better_player_channel"
-                                binaryMessenger:[registrar messenger]];
     BetterPlayerPlugin* instance = [[BetterPlayerPlugin alloc] initWithRegistrar:registrar];
+    FlutterMethodChannel* channel =
+        [FlutterMethodChannel methodChannelWithName:@"better_player_channel"
+                                    binaryMessenger:[registrar messenger]];
     [registrar addMethodCallDelegate:instance channel:channel];
     //[registrar publish:instance];
-    [registrar registerViewFactory:instance withId:@"com.richardyang/better_player"];
 }
 
 - (instancetype)initWithRegistrar:(NSObject<FlutterPluginRegistrar>*)registrar {
@@ -62,13 +60,10 @@ bool _remoteCommandsInitialized = false;
 }
 
 #pragma mark - BetterPlayerPlugin class
-- (int)newTextureId {
-    texturesCount += 1;
-    return texturesCount;
-}
 - (void)onPlayerSetup:(BetterPlayer*)player
                result:(FlutterResult)result {
-    int64_t textureId = [self newTextureId];
+    //int64_t textureId = [player textureId];   // TODO: [player textureId] is to retrieve offscreen texture
+    int64_t textureId = [[_registrar textures] registerTexture:[player textureRenderer]];
     FlutterEventChannel* eventChannel = [FlutterEventChannel
                                          eventChannelWithName:[NSString stringWithFormat:@"better_player_channel/videoEvents%lld",
                                                                textureId]

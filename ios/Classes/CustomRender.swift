@@ -85,7 +85,7 @@ import GLKit
       let result = Unmanaged.passRetained(pixelBuffer!);
       return result;
     } else {
-      print("pixelBuffer is nil.... ");
+      NSLog("pixelBuffer is nil.... ");
       return nil;
     }
   }
@@ -100,17 +100,14 @@ import GLKit
   }
 
   func initOffscreenFBO() {
-    self.createCVBufferWithSize(
+    let res: Bool = self.createCVBufferWithSize(
       size: CGSize(width: glWidth, height: glHeight),
       context: self.eglEnv!.context!
     );
+    if (!res) { return; }
     
     checkGlError(op: "EglEnv initGL 11...")
 
-    if(glCheckFramebufferStatus(GLenum(GL_FRAMEBUFFER)) != GL_FRAMEBUFFER_COMPLETE) {
-      print("failed to make complete framebuffer object \(glCheckFramebufferStatus(GLenum(GL_FRAMEBUFFER)))");
-    }
-    
     glBindTexture(CVOpenGLESTextureGetTarget(fboTexture!), CVOpenGLESTextureGetName(fboTexture!));
 
     checkGlError(op: "EglEnv initGL 2...")
@@ -136,14 +133,18 @@ import GLKit
     glFramebufferRenderbuffer(GLenum(GL_FRAMEBUFFER), GLenum(GL_STENCIL_ATTACHMENT), GLenum(GL_RENDERBUFFER), rboId);
     
     if(glCheckFramebufferStatus(GLenum(GL_FRAMEBUFFER)) != GL_FRAMEBUFFER_COMPLETE) {
-      print("failed to make complete framebuffer object \(glCheckFramebufferStatus(GLenum(GL_FRAMEBUFFER)))");
+      NSLog("failed to make complete framebuffer object %d", glCheckFramebufferStatus(GLenum(GL_FRAMEBUFFER)));
     }
     
     checkGlError(op: "EglEnv initGL 2...")
   }
   
-  func createCVBufferWithSize(size: CGSize, context: EAGLContext) {
-    let err: CVReturn = CVOpenGLESTextureCacheCreate(kCFAllocatorDefault, nil, context, nil, &fboTextureCache);
+  func createCVBufferWithSize(size: CGSize, context: EAGLContext) -> Bool {
+    let res: CVReturn = CVOpenGLESTextureCacheCreate(kCFAllocatorDefault, nil, context, nil, &fboTextureCache);
+    if (res != kCVReturnSuccess) {
+      NSLog("Failed to CVOpenGLESTextureCacheCreate %d", res);
+      return false;
+    }
       
     let attrs = [
       kCVPixelBufferPixelFormatTypeKey: NSNumber(value: kCVPixelFormatType_32BGRA),
@@ -154,7 +155,10 @@ import GLKit
     
     let cv2: CVReturn = CVPixelBufferCreate(kCFAllocatorDefault, Int(size.width), Int(size.height),
                                             kCVPixelFormatType_32BGRA, attrs, &fboTargetPixelBuffer);
-       
+    if (cv2 != kCVReturnSuccess) {
+      NSLog("Failed to CVPixelBufferCreate %d", cv2);
+      return false;
+    }
     
     let cvr: CVReturn = CVOpenGLESTextureCacheCreateTextureFromImage(kCFAllocatorDefault,
                                                                      fboTextureCache!,
@@ -167,7 +171,13 @@ import GLKit
                                                                      GLenum(GL_BGRA),
                                                                      GLenum(GL_UNSIGNED_BYTE),
                                                                      0,
-                                                                     &fboTexture);   
+                                                                     &fboTexture);
+    if (cvr != kCVReturnSuccess) {
+      NSLog("Failed to CVOpenGLESTextureCacheCreateTextureFromImage %d", cvr);
+      return false;
+    }
+
+    return true;
   }
 
   func checkGlError(op: String) {

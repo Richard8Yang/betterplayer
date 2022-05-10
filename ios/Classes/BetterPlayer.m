@@ -483,6 +483,7 @@ static inline CGFloat radiansToDegrees(CGFloat radians) {
         CGFloat w = fabs(realSize.width) ? : width;
         CGFloat h = fabs(realSize.height) ? : height;
         [_renderer updateTextureSize: w height: h];
+        NSLog(@"Video size changed to: %f x %f", w, h);
 
         int64_t duration = [BetterPlayerTimeUtils FLTCMTimeToMillis:(_player.currentItem.asset.duration)];
         if (_overriddenDuration > 0 && duration > _overriddenDuration){
@@ -533,6 +534,14 @@ static inline CGFloat radiansToDegrees(CGFloat radians) {
     }
 
     return [BetterPlayerTimeUtils FLTCMTimeToMillis:(time)];
+}
+
+- (int64_t)textureId {
+    return [_renderer getTextureId];
+}
+
+- (CustomRender*)textureRenderer {
+    return _renderer;
 }
 
 - (void)seekTo:(int)location {

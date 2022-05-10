@@ -44,7 +44,8 @@ NS_ASSUME_NONNULL_BEGIN
 - (void)updatePlayingState;
 - (int64_t) duration;
 - (int64_t) position;
-
+- (int64_t)textureId;
+- (CustomRender*)textureRenderer;
 - (instancetype)initWithFrame:(CGRect)frame shareEglCtx:(EAGLContext*)shareEglCtx;
 - (void)setMixWithOthers:(bool)mixWithOthers;
 - (void)seekTo:(int)location;
