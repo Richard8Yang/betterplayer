@@ -54,6 +54,10 @@ class CustomRender : SurfaceTexture.OnFrameAvailableListener{
         srcSurfaceTex.setOnFrameAvailableListener(this, renderHandler)
     }
 
+    fun offScreenTextureId() : Int {
+        return this.worker.dstTextureId
+    }
+
     fun updateTextureSize(w: Int, h: Int) {
         this.executeSync {
             this.worker.updateTextureSize(w, h)
@@ -68,8 +72,7 @@ class CustomRender : SurfaceTexture.OnFrameAvailableListener{
         videoTexture.updateTexImage()
         videoTexture.getTransformMatrix(oesTextureMatrix)
 
-        this.worker.renderTexture(oesTextureMatrix);
-        //this.worker.renderTexture(oesTextureMatrix, true);
+        this.worker.renderTexture(oesTextureMatrix, sharedEglCtx == EGL14.EGL_NO_CONTEXT);
 
         glFinish();
 

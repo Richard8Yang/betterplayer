@@ -173,9 +173,10 @@ class VideoPlayerController extends ValueNotifier<VideoPlayerValue> {
   VideoPlayerController({
     this.bufferingConfiguration = const BetterPlayerBufferingConfiguration(),
     bool autoCreate = true,
+    dynamic shareEglContext = null,
   }) : super(VideoPlayerValue(duration: null)) {
     if (autoCreate) {
-      _create();
+      _create(shareEglContext);
     }
   }
 
@@ -198,9 +199,10 @@ class VideoPlayerController extends ValueNotifier<VideoPlayerValue> {
   int? get textureId => _textureId;
 
   /// Attempts to open the given [dataSource] and load metadata about the video.
-  Future<void> _create() async {
+  Future<void> _create(dynamic shareEglContext) async {
     _textureId = await _videoPlayerPlatform.create(
       bufferingConfiguration: bufferingConfiguration,
+      shareEglContext: shareEglContext,
     );
     _creatingCompleter.complete(null);
 

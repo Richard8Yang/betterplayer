@@ -27,29 +27,35 @@ class MethodChannelVideoPlayer extends VideoPlayerPlatform {
   }
 
   @override
-  Future<int?> create({
-    BetterPlayerBufferingConfiguration? bufferingConfiguration,
-  }) async {
+  Future<int?> create(
+      {BetterPlayerBufferingConfiguration? bufferingConfiguration,
+      dynamic shareEglContext}) async {
     late final Map<String, dynamic>? response;
-    if (bufferingConfiguration == null) {
+    if (bufferingConfiguration == null && shareEglContext == null) {
       response = await _channel.invokeMapMethod<String, dynamic>('create');
     } else {
-      final responseLinkedHashMap = await _channel.invokeMethod<Map?>(
-        'create',
-        <String, dynamic>{
-          'minBufferMs': bufferingConfiguration.minBufferMs,
-          'maxBufferMs': bufferingConfiguration.maxBufferMs,
-          'bufferForPlaybackMs': bufferingConfiguration.bufferForPlaybackMs,
-          'bufferForPlaybackAfterRebufferMs':
-              bufferingConfiguration.bufferForPlaybackAfterRebufferMs,
-        },
-      );
+      var args = Map<String, dynamic>();
+      if (bufferingConfiguration != null) {
+        args['minBufferMs'] = bufferingConfiguration.minBufferMs;
+        args['maxBufferMs'] = bufferingConfiguration.maxBufferMs;
+        args['bufferForPlaybackMs'] =
+            bufferingConfiguration.bufferForPlaybackMs;
+        args['bufferForPlaybackAfterRebufferMs'] =
+            bufferingConfiguration.bufferForPlaybackAfterRebufferMs;
+      }
+      if (shareEglContext != null) {
+        args['sharedEglContext'] = shareEglContext;
+      }
+      final responseLinkedHashMap =
+          await _channel.invokeMethod<Map?>('create', args);
 
       response = responseLinkedHashMap != null
           ? Map<String, dynamic>.from(responseLinkedHashMap)
           : null;
     }
-    return response?['textureId'] as int?;
+    // Return the shared offscreen texture if shared EGL context is specified
+    final key = shareEglContext == null ? 'textureId' : 'sharedTextureId';
+    return response?[key] as int?;
   }
 
   @override
@@ -420,7 +426,7 @@ class MethodChannelVideoPlayer extends VideoPlayerPlatform {
 
   @override
   Widget buildView(int? textureId) {
-      return Texture(textureId: textureId!);
+    return Texture(textureId: textureId!);
   }
 
   EventChannel _eventChannelFor(int? textureId) {

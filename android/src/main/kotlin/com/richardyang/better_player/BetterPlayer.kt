@@ -569,6 +569,7 @@ internal class BetterPlayer (
         })
         val reply: MutableMap<String, Any> = HashMap()
         reply["textureId"] = textureEntry.id()
+        reply["sharedTextureId"] = renderer!!.offScreenTextureId()   // returns shared offscreen texture
         result.success(reply)
     }
 

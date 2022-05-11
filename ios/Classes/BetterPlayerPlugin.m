@@ -62,7 +62,6 @@ bool _remoteCommandsInitialized = false;
 #pragma mark - BetterPlayerPlugin class
 - (void)onPlayerSetup:(BetterPlayer*)player
                result:(FlutterResult)result {
-    //int64_t textureId = [player textureId];   // TODO: [player textureId] is to retrieve offscreen texture
     int64_t textureId = [[_registrar textures] registerTexture:[player textureRenderer]];
     FlutterEventChannel* eventChannel = [FlutterEventChannel
                                          eventChannelWithName:[NSString stringWithFormat:@"better_player_channel/videoEvents%lld",
@@ -73,6 +72,10 @@ bool _remoteCommandsInitialized = false;
     player.eventChannel = eventChannel;
     _players[@(textureId)] = player;
     result(@{@"textureId" : @(textureId)});
+
+    // returns shared offscreen texture
+    textureId = [player textureId];
+    result(@{@"sharedTextureId" : @(textureId)});
 }
 
 - (void) setupRemoteNotification :(BetterPlayer*) player{

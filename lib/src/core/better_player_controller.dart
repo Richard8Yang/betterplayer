@@ -28,6 +28,9 @@ class BetterPlayerController {
   ///Playlist configuration used in controller instance.
   final BetterPlayerPlaylistConfiguration? betterPlayerPlaylistConfiguration;
 
+  ///Share EGL context
+  final dynamic shareEglContext;
+
   ///List of event listeners, which listen to events.
   final List<Function(BetterPlayerEvent)?> _eventListeners = [];
 
@@ -213,13 +216,14 @@ class BetterPlayerController {
   BetterPlayerController(
     this.betterPlayerConfiguration, {
     this.betterPlayerPlaylistConfiguration,
+    this.shareEglContext,
     BetterPlayerDataSource? betterPlayerDataSource,
   }) {
     this._betterPlayerControlsConfiguration =
         betterPlayerConfiguration.controlsConfiguration;
     _eventListeners.add(eventListener);
     if (betterPlayerDataSource != null) {
-      setupDataSource(betterPlayerDataSource);
+      setupDataSource(betterPlayerDataSource, this.shareEglContext);
     }
   }
 
@@ -232,7 +236,8 @@ class BetterPlayerController {
   }
 
   ///Setup new data source in Better Player.
-  Future setupDataSource(BetterPlayerDataSource betterPlayerDataSource) async {
+  Future setupDataSource(BetterPlayerDataSource betterPlayerDataSource,
+      [dynamic shareEglContext = null]) async {
     postEvent(BetterPlayerEvent(BetterPlayerEventType.setupDataSource,
         parameters: <String, dynamic>{
           _dataSourceParameter: betterPlayerDataSource,
@@ -246,8 +251,9 @@ class BetterPlayerController {
     ///Build videoPlayerController if null
     if (videoPlayerController == null) {
       videoPlayerController = VideoPlayerController(
-          bufferingConfiguration:
-              betterPlayerDataSource.bufferingConfiguration);
+        bufferingConfiguration: betterPlayerDataSource.bufferingConfiguration,
+        shareEglContext: shareEglContext,
+      );
       videoPlayerController?.addListener(_onVideoPlayerChanged);
     }
 
